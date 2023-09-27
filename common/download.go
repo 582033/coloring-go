@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	Url "net/url"
 	"os"
 	"strings"
 )
@@ -29,7 +30,7 @@ func Mkdir(dir string) bool {
 
 func Download(url string, savePath string, callBack func()) {
 	fileInfo := strings.Split(url, "/")
-	fileName := fileInfo[len(fileInfo)-1]
+	fileName, _ := Url.QueryUnescape(fileInfo[len(fileInfo)-1])
 	//创建目录
 	Mkdir(savePath)
 	//fmt.Println(fileName)

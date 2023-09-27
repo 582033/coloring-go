@@ -2,10 +2,10 @@ package libs
 
 import (
 	"coloring/common"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"regexp"
 	"sync"
 
 	"github.com/PuerkitoBio/goquery"
@@ -18,8 +18,8 @@ type urlParams struct {
 }
 
 func ColoringBook(id string) {
-	htmlUri := "https://www.coloring-book.info/coloring/"
-	htmlUrl := htmlUri + "coloring_page.php?id=" + id
+	htmlUri := "https://downloads.khinsider.com/"
+	htmlUrl := htmlUri + "game-soundtracks/album/the-legend-of-zelda-tears-of-the-kingdom-o.s.t-switch-gamerip-2023"
 
 	res, err := http.Get(htmlUrl)
 	if err != nil {
@@ -37,25 +37,25 @@ func ColoringBook(id string) {
 	}
 
 	//从列表页缩略图中查出所有原图链接地址
-	var imgList []string
-	doc.Find("a>img").Each(func(i int, s *goquery.Selection) {
-		src, _ := s.Attr("src")
-		//fmt.Println(src)
-
-		reg := regexp.MustCompile(`thumbs`)
-		if reg.FindStringIndex(src) != nil {
-			href, _ := s.Parent().Attr("href")
-			imgList = append(imgList, htmlUri+href)
-		}
+	var mp3List []string
+	//doc.Find("td.clickable-row>a").Each(func(i int, s *goquery.Selection) {
+	doc.Find("div.playTrack").Each(func(i int, s *goquery.Selection) {
+		src, _ := s.Parent().Parent().Find("a").Attr("href")
+		//src, _ := s.Attr("href")
+		mp3List = append(mp3List, htmlUri+src)
 	})
 
+	if debugBytes, _ := json.Marshal(mp3List); len(debugBytes) > 0 {
+		fmt.Printf("RequestID:%v DebugMessage:%s Value:%s", nil, "mp3List", string(debugBytes))
+	}
+
 	defer ants.Release()
-	p, _ := ants.NewPool(20)
+	p, _ := ants.NewPool(200)
 
 	//用于等待协程完成
 	var wg sync.WaitGroup
 
-	for _, url := range imgList {
+	for _, url := range mp3List {
 		wg.Add(1)
 		p.Submit(getColoringBookOriginPicUrlAndDownload(htmlUri, url, func() {
 			defer wg.Done()
@@ -81,8 +81,8 @@ func getColoringBookOriginPicUrlAndDownload(curUri string, url string, callBack 
 		if err != nil {
 			fmt.Println(err)
 		}
-		href, _ := doc.Find("img.print").Attr("src")
-		picUrl := curUri + href
+		href, _ := doc.Find("audio#audio").Attr("src")
+		picUrl := href
 
 		//获取当前目录下的`downloads`作为存储目录
 		savePath, _ := os.Getwd()
